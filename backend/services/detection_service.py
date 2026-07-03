@@ -2,41 +2,70 @@ import json
 
 from backend.prompts.system_prompt import SYSTEM_PROMPT
 from backend.prompts.detection_prompt import build_detection_prompt
-
-from backend.schemas.detection_request import DetectionRequest
-
-from backend.rag.knowledge_service import knowledge_service
-
+from backend.services.context_builder import context_builder
 from backend.services.llm_service import llm_service
 
 
 class DetectionService:
     """
-    Generates Microsoft Sentinel detections.
+    Enterprise Detection Generation Service
     """
 
-    def generate_detection(
+    def generate(
         self,
-        request: DetectionRequest,
-    ) -> dict:
+        attack_description,
+        connector_name,
+        sample_logs,
+        threat_model,
+        application_analysis,
+        questionnaire,
+    ):
 
-        knowledge, sources = knowledge_service.retrieve(
-            request.attack_description
+        context = context_builder.build(
+            attack_description=attack_description,
+            connector_name=connector_name,
+            sample_logs=sample_logs,
+            threat_model=threat_model,
+            application_analysis=application_analysis,
+            questionnaire=questionnaire,
         )
 
-        prompt = build_detection_prompt(
-            request.attack_description,
-            knowledge,
-        )
+        prompt = build_detection_prompt(context)
 
         response = llm_service.generate(
             SYSTEM_PROMPT,
             prompt,
         )
 
-        detection = json.loads(response)
+        print("\n================ GPT RAW RESPONSE ================\n")
+        print(response)
+        print("\n==================================================\n")
 
-        detection["_knowledge_sources"] = sources
+        response = (
+            response.replace("```json", "")
+            .replace("```", "")
+            .strip()
+        )
+
+        try:
+            detection = json.loads(response)
+
+        except Exception as ex:
+
+            raise Exception(
+                f"""
+GPT did not return valid JSON.
+
+================ RESPONSE ================
+
+{response}
+
+==========================================
+"""
+            ) from ex
+
+        detection["_knowledge_sources"] = context.knowledge_sources
+        detection["_connector"] = context.connector_name
 
         return detection
 

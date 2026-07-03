@@ -1,95 +1,74 @@
-"""
-AI Detection Engineering Assistant
-
-Main Streamlit Application
-"""
-
 import streamlit as st
 
-from backend.workflow.workflow_state import workflow_state
+from ui.session import initialize
+from ui.navigation import render as navigation
 
-from ui.threat_model_ui import render as threat_model
-
-from ui.application_analysis_ui import render as application_analysis
-
-
-# ----------------------------------------------------------
-# Page Configuration
-# ----------------------------------------------------------
+from ui import (
+    threat_model,
+    application_analysis,
+    gap_analysis,
+    questionnaire,
+    log_source,
+    log_validation,
+    use_case,
+    detection_generation,
+    kql_review,
+    detection_review,
+    explainability,
+    approval,
+    export,
+)
 
 st.set_page_config(
-    page_title="AI Detection Engineering Assistant",
+
+    page_title="AI Detection Engineer",
+
     page_icon="🛡️",
+
     layout="wide",
+
 )
 
-workflow_state.initialize()
+initialize()
 
-# ----------------------------------------------------------
-# Header
-# ----------------------------------------------------------
+navigation()
 
-st.title("🛡️ AI Detection Engineering Assistant")
+PAGES = [
 
-st.caption(
-    "Enterprise AI Assistant for Microsoft Sentinel Detection Engineering"
-)
+    threat_model,
 
-# ----------------------------------------------------------
-# Sidebar
-# ----------------------------------------------------------
+    application_analysis,
 
-workflow = st.sidebar.radio(
-    "Detection Engineering Workflow",
-    (
-        "Threat Model",
-        "Application Analysis",
-        "Questionnaire",
-        "Log Validation",
-        "Use Case Proposal",
-        "Detection Generation",
-        "KQL Review",
-        "Detection Review",
-        "Human Review",
-    ),
-)
+    gap_analysis,
 
-# ----------------------------------------------------------
-# Workflow Routing
-# ----------------------------------------------------------
+    questionnaire,
 
-if workflow == "Threat Model":
+    log_source,
 
-    threat_model()
+    log_validation,
 
-elif workflow == "Application Analysis":
+    use_case,
 
-    application_analysis()
+    detection_generation,
 
-elif workflow == "Questionnaire":
+    kql_review,
 
-    st.info("Questionnaire module coming next.")
+    detection_review,
 
-elif workflow == "Log Validation":
+    explainability,
 
-    st.info("Log Validation module coming next.")
+    approval,
 
-elif workflow == "Use Case Proposal":
+    export,
 
-    st.info("Use Case Proposal module coming next.")
+]
 
-elif workflow == "Detection Generation":
+step = st.session_state.step
 
-    st.info("Detection Generation module coming next.")
+if step >= len(PAGES):
 
-elif workflow == "KQL Review":
+    st.session_state.step = 0
 
-    st.info("KQL Review module coming next.")
+    step = 0
 
-elif workflow == "Detection Review":
-
-    st.info("Detection Review module coming next.")
-
-elif workflow == "Human Review":
-
-    st.info("Human Review module coming next.")
+PAGES[step].render()

@@ -1,64 +1,114 @@
+from backend.context.detection_context import DetectionContext
+
+
 def build_detection_prompt(
-    attack_description: str,
-    knowledge: str,
-) -> str:
-    """
-    Builds the prompt for generating a Microsoft Sentinel Detection.
-    """
+    context: DetectionContext,
+):
 
     return f"""
-You are generating a Microsoft Sentinel Analytics Rule.
+You are a Senior Microsoft Sentinel Detection Engineer.
 
-Attack Description
+Generate a PRODUCTION READY Microsoft Sentinel Analytics Rule.
 
-{attack_description}
+====================================================
+Threat Model
+====================================================
 
-------------------------------------------------------------
+{context.threat_model}
 
-Relevant Detection Engineering Knowledge
+====================================================
+Application Analysis
+====================================================
 
-{knowledge}
+{context.application_analysis}
 
-------------------------------------------------------------
+====================================================
+Questionnaire
+====================================================
 
-Instructions
+{context.questionnaire}
 
-Generate a production-ready Microsoft Sentinel Detection.
+====================================================
+Connector
+====================================================
 
-Return ONLY valid JSON.
+{context.connector_name}
+
+====================================================
+Sample Logs
+====================================================
+
+{context.sample_logs[:20]}
+
+====================================================
+Schema
+====================================================
+
+{context.log_schema}
+
+====================================================
+Custom Event Mapping
+====================================================
+
+{context.ai_event_mapping}
+
+====================================================
+Similar Rules
+====================================================
+
+{context.similar_rules}
+
+====================================================
+Knowledge
+====================================================
+
+{context.knowledge}
+
+====================================================
+
+Return ONLY VALID JSON.
+
+Do NOT explain anything.
 
 Do NOT use markdown.
 
-Do NOT explain the response.
+The JSON MUST contain EXACTLY these fields.
 
-Include:
+{{
+    "DetectionName":"",
+    "Description":"",
+    "Product":"Microsoft Sentinel",
+    "LogSourceTypes":[],
+    "Severity":"Medium",
+    "RiskScore":50,
+    "Tactics":[],
+    "Techniques":[],
+    "QueryFrequency":"1h",
+    "QueryPeriod":"1h",
+    "Query":"",
+    "EntityMappings":[],
+    "FalsePositives":[],
+    "DetectionLogic":"",
+    "RecommendedActions":[],
+    "References":[],
+    "Version":"1.0",
+    "Status":"Draft",
+    "Author":"AI Detection Engineer"
+}}
 
-- DetectionName
-- Description
-- Product
-- LogSourceTypes
-- Severity
-- RiskScore
-- Tactics
-- Techniques
-- QueryFrequency
-- QueryPeriod
-- Query
-- EntityMappings
-- FalsePositives
-- DetectionLogic
-- RecommendedActions
-- References
-- Version
-- Status
-- Author
+Requirements
 
-The KQL must:
-
-- Follow Microsoft Sentinel best practices.
+- Use Microsoft Sentinel best practices.
+- Generate production quality KQL.
 - Use configurable thresholds.
-- Filter TimeGenerated early.
+- Filter TimeGenerated first.
+- Reduce false positives.
 - Use summarize where appropriate.
-- Project only investigation fields.
-- Minimize false positives.
+- Use EntityMappings.
+- Use MITRE ATT&CK.
+- Use the supplied sample logs.
+- Use connector schema.
+- Use custom event mapping.
+- Use the supplied knowledge.
+- Return ONLY JSON.
 """
