@@ -11,9 +11,13 @@ class KnowledgeService:
 
         self.knowledge_dir = Path("knowledge")
 
-    def retrieve(self, attack_description: str):
+    def retrieve(self, search_text: str):
+        """
+        Retrieve relevant knowledge files based on
+        keywords found in the provided search text.
+        """
 
-        attack = attack_description.lower()
+        search_text = search_text.lower()
 
         knowledge = []
         sources = []
@@ -27,14 +31,16 @@ class KnowledgeService:
 
             score = 0
 
-            for word in filename.split("_"):
+            for word in filename.replace("-", "_").split("_"):
 
-                if word in attack:
+                if word in search_text:
                     score += 1
 
             if score > 0:
 
-                knowledge.append(file.read_text(encoding="utf-8"))
+                knowledge.append(
+                    file.read_text(encoding="utf-8")
+                )
 
                 sources.append(file.name)
 
