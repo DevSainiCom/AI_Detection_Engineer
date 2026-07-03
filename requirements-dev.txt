@@ -1,0 +1,8 @@
+openai
+streamlit
+python-dotenv
+pydantic
+fastapi
+uvicorn
+langgraph
+chromadb
