@@ -19,9 +19,10 @@ from ui import (
 )
 
 st.set_page_config(
-    page_title="AI Detection Engineer",
+    page_title="AI Detection Engineering Platform",
     page_icon="🛡️",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 initialize()
@@ -29,7 +30,6 @@ initialize()
 navigation()
 
 PAGES = [
-
     # Customer Onboarding
     threat_model,
     application_analysis,
@@ -37,17 +37,16 @@ PAGES = [
     detection_context,
     log_source,
     log_validation,
-    use_case,
 
-    # AI Detection Engineering
+    # Detection Engineering
+    use_case,
     detection_generation,
     detection_review,
     explainability,
 
-    # Finalisation
+    # Deployment
     approval,
     export,
-
 ]
 
 step = st.session_state.step

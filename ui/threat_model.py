@@ -1,389 +1,293 @@
+"""
+Threat Model — Enterprise Redesign
+====================================
+"""
+
+import time
 import streamlit as st
 
 from ui.components import *
+from ui.design_system import (
+    enterprise_card,
+    metric_row,
+    info_banner,
+    checklist,
+    section_divider,
+    arch_context,
+)
 
 
 def render():
 
-    page_header(
-        "Threat Model",
-        "Describe the application's threat landscape and business risk."
+    page_setup(
+        title="Threat Model",
+        subtitle="Describe the application's threat landscape and business risk to establish the security context for detection engineering.",
+        eyebrow="Customer Onboarding · Step 1 of 12",
+        agent_name="Threat Modeling Agent",
+        agent_desc=(
+            "This agent analyses threat models, architecture diagrams, and security documents "
+            "to establish the security context for the application. "
+            "<strong>Current POC:</strong> Rule-based assessment. "
+            "<strong>Future:</strong> AI-powered analysis of uploaded documents, "
+            "Microsoft Threat Modeling Tool exports, and architecture diagrams."
+        ),
     )
 
-    # ----------------------------------------------------------
-    # POC Banner
-    # ----------------------------------------------------------
-
-    st.info("""
-## 🚀 AI Threat Modeling Agent (Proof of Concept)
-
-This module demonstrates the planned AI-powered Threat Modeling capability.
-
-**Current POC**
-- The assessment below is generated using rule-based logic to demonstrate the future user experience.
-- Your inputs are used to personalise the generated assessment.
-
-**Future Platform**
-- AI will automatically analyse uploaded Threat Models, Architecture Diagrams,
-  Security Documents, Microsoft Threat Modeling Tool exports, Data Flow Diagrams,
-  Security Assessments and related documentation.
-
-The report below represents the planned output of the future AI Threat Modeling Agent.
-""")
-
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
     # Session
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
 
     if "threat_model_completed" not in st.session_state:
         st.session_state.threat_model_completed = False
 
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
     # Input Form
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
 
-    model = {
+    col_left, col_right = st.columns([1, 1], gap="large")
 
-        "ApplicationName":
+    with col_left:
 
-        st.text_input(
+        st.markdown("##### Application Details")
+
+        model_app = st.text_input(
             "Application Name",
             placeholder="e.g. Online Banking Portal",
-        ),
+        )
 
-        "BusinessFunction":
-
-        st.text_input(
+        model_biz = st.text_input(
             "Business Function",
             placeholder="e.g. Retail Banking",
-        ),
+        )
 
-        "ThreatActor":
-
-        st.selectbox(
+        model_actor = st.selectbox(
             "Threat Actor",
-            [
-                "Cyber Criminal",
-                "APT",
-                "Insider",
-                "Hacktivist",
-            ],
+            ["Cyber Criminal", "APT", "Insider", "Hacktivist"],
             index=None,
-            placeholder="Select Threat Actor",
-        ),
+            placeholder="Select threat actor",
+        )
 
-        "Criticality":
+    with col_right:
 
-        st.selectbox(
+        st.markdown("##### Risk Assessment")
+
+        model_crit = st.selectbox(
             "Business Criticality",
-            [
-                "Low",
-                "Medium",
-                "High",
-                "Critical",
-            ],
+            ["Low", "Medium", "High", "Critical"],
             index=None,
-            placeholder="Select Business Criticality",
-        ),
+            placeholder="Select criticality",
+        )
 
-        "AttackDescription":
-
-        st.text_area(
+        model_attack = st.text_area(
             "Attack Description",
-            height=220,
-            placeholder="""
-Example:
+            height=162,
+            placeholder=(
+                "Describe the primary threats...\n\n"
+                "Example:\n"
+                "The application is Internet-facing and processes "
+                "customer financial transactions. Primary concerns "
+                "include password spraying, credential theft, "
+                "account takeover, and privilege escalation."
+            ),
+        )
 
-The application is Internet-facing and processes customer financial transactions.
-
-Primary concerns include:
-
-- Password Spraying
-- Credential Theft
-- Account Takeover
-- API Abuse
-- Privilege Escalation
-- Session Hijacking
-""",
-        ),
+    model = {
+        "ApplicationName": model_app,
+        "BusinessFunction": model_biz,
+        "ThreatActor": model_actor,
+        "Criticality": model_crit,
+        "AttackDescription": model_attack,
     }
 
     st.session_state.threat_model = model
 
-    st.markdown("---")
+    section_divider()
 
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
     # Generate Button
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
 
     if not st.session_state.threat_model_completed:
-
         if st.button(
             "🚀 Generate Threat Assessment",
             use_container_width=True,
             type="primary",
         ):
-
             with st.spinner("Analysing threat model..."):
-
-                import time
-
                 time.sleep(2)
-
             st.session_state.threat_model_completed = True
-
             st.rerun()
+        return  # Don't render results until generated
 
-    # ----------------------------------------------------------
-    # Threat Assessment
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
+    # Results
+    # ──────────────────────────────────────────────────────────
 
-    if st.session_state.threat_model_completed:
+    risk = model["Criticality"] or "Medium"
+    application = model["ApplicationName"] or "the application"
+    business = model["BusinessFunction"] or "the business service"
+    actor = model["ThreatActor"] or "identified threat actors"
 
-        risk = model["Criticality"] or "Medium"
+    # Risk color
+    risk_color = {"Critical": "red", "High": "amber", "Medium": "amber", "Low": "green"}.get(risk, "blue")
 
-        application = (
-            model["ApplicationName"]
-            if model["ApplicationName"]
-            else "the application"
+    info_banner(
+        f"Threat assessment for <strong>{application}</strong> completed successfully. "
+        f"The application supports <strong>{business}</strong> and is primarily exposed to "
+        f"<strong>{actor}</strong> activity. Risk rating: <strong>{risk}</strong>.",
+        variant="success",
+    )
+
+    # ── Metrics ──
+    metric_row([
+        {"value": risk, "label": "Risk Rating", "color": risk_color},
+        {"value": "5", "label": "MITRE Techniques", "color": "blue"},
+        {"value": "8", "label": "Detection Priorities", "color": "purple"},
+        {"value": "7", "label": "Critical Assets", "color": "green"},
+    ])
+
+    section_divider()
+
+    # ── Business Context Card ──
+    st.markdown("##### Business Context")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        enterprise_card("Application", f"{application}", "accent-left")
+        enterprise_card("Threat Actor", f"{actor}", "accent-left")
+    with c2:
+        enterprise_card("Business Function", f"{business}", "accent-left")
+        enterprise_card("Business Criticality", f"{risk}", "accent-left")
+
+    section_divider()
+
+    # ── Threat Landscape ──
+    st.markdown("##### Threat Landscape")
+
+    t1, t2 = st.columns(2)
+    with t1:
+        enterprise_card(
+            "Primary Threat Categories",
+            "Credential Theft · Password Spraying · Account Takeover · "
+            "Public Facing Application Exploitation · API Abuse · "
+            "Privilege Escalation · Service Account Abuse · Insider Threat",
+            "accent-warning",
+        )
+    with t2:
+        enterprise_card(
+            "Critical Assets",
+            "Customer Accounts · Authentication Services · Application APIs · "
+            "Business Data · Identity Platform · Privileged Accounts · Financial Information",
+            "accent-danger",
         )
 
-        business = (
-            model["BusinessFunction"]
-            if model["BusinessFunction"]
-            else "the business service"
-        )
-
-        actor = (
-            model["ThreatActor"]
-            if model["ThreatActor"]
-            else "identified threat actors"
-        )
-
-        st.success("Threat Assessment generated successfully.")
-
-        st.markdown("---")
-
-        st.subheader("Executive Summary")
-
-        st.info(
-            f"""
-The submitted threat model indicates that **{application}**
-supports **{business}** and is primarily exposed to
-activities associated with **{actor}**.
-
-Based on the supplied business context, attack description
-and business criticality, the application has been assessed
-as **{risk} Risk**.
-
-The identified threats, business context and recommended
-monitoring priorities will become part of the customer's
-Security Knowledge Base and will be referenced by future
-Detection Planning and Microsoft Sentinel Detection Generation.
-"""
-        )
-
-        st.markdown("---")
-
-        st.subheader("Business Context")
-
-        st.table(
-            {
-                "Attribute": [
-                    "Application",
-                    "Business Function",
-                    "Threat Actor",
-                    "Business Criticality",
-                ],
-                "Value": [
-                    application,
-                    business,
-                    actor,
-                    risk,
-                ],
-            }
-        )
-
-        st.markdown("---")
-
-        st.subheader("Threat Landscape")
-
-        st.markdown("""
-### Primary Threat Categories
-
-- Credential Theft
-- Password Spraying
-- Account Takeover
-- Public Facing Application Exploitation
-- API Abuse
-- Privilege Escalation
-- Service Account Abuse
-- Insider Threat
-""")
-
-        st.markdown("---")
-
-        st.subheader("Critical Assets")
-
-        st.markdown("""
-- Customer Accounts
-- Authentication Services
-- Application APIs
-- Business Data
-- Identity Platform
-- Privileged Accounts
-- Financial Information
-""")
-
-        st.markdown("---")
-
-        st.subheader("Relevant MITRE ATT&CK Techniques")
-
-        st.table(
-            {
-                "Technique": [
-                    "T1078",
-                    "T1110",
-                    "T1190",
-                    "T1098",
-                    "T1021",
-                ],
-                "Description": [
-                    "Valid Accounts",
-                    "Password Guessing",
-                    "Public Facing Application",
-                    "Account Manipulation",
-                    "Remote Services",
-                ],
-                "Priority": [
-                    "Critical",
-                    "Critical",
-                    "High",
-                    "High",
-                    "Medium",
-                ],
-            }
-        )
-        st.markdown("---")
-
-        st.subheader("Recommended Detection Priorities")
-
-        st.markdown("""
-1. Password Spray Detection
-
-2. Impossible Travel
-
-3. Suspicious Authentication
-
-4. Privileged Account Monitoring
-
-5. Service Account Abuse
-
-6. Administrative Activity Monitoring
-
-7. OAuth Abuse Detection
-
-8. API Abuse Detection
-""")
-
-        st.markdown("---")
-
-        st.subheader("SOC Recommendations")
-
-        st.markdown("""
-- Enable comprehensive identity monitoring.
-- Collect authentication and administrative logs.
-- Enable Microsoft Sentinel analytics for privileged accounts.
-- Correlate authentication events with application activity.
-- Monitor service accounts and privileged identities.
-- Continuously review business-critical assets.
-- Validate logging coverage across the application landscape.
-""")
-
-        st.markdown("---")
-
-        st.subheader("Knowledge Generated")
-
-        st.success("""
-The following knowledge has been generated and will be available for future Detection Engineering:
-
-✅ Business Context
-
-✅ Business Criticality
-
-✅ Threat Actor Profile
-
-✅ Threat Landscape
-
-✅ Critical Assets
-
-✅ MITRE ATT&CK Mapping
-
-✅ Detection Priorities
-
-✅ Monitoring Recommendations
-
-✅ Security Context
-""")
-
-        st.markdown("---")
-
-        st.subheader("Detection Engineering Impact")
-
-        st.info(f"""
-The assessment for **{application}** has established the initial security context for this application.
-
-Future Detection Generation will automatically consider:
-
-• Application business context
-
-• Threat actor profile
-
-• Business criticality
-
-• Critical assets
-
-• Relevant MITRE ATT&CK techniques
-
-• Detection priorities
-
-• Recommended monitoring strategy
-
-This enables customer-specific Microsoft Sentinel detections instead of generic analytics.
-""")
-
-        st.markdown("---")
-
-        st.subheader("Executive Assessment")
-
-        st.success(f"""
-Overall Risk Rating: **{risk}**
-
-Based on the submitted information, this application should be prioritised
-for continuous monitoring due to its business importance and exposure to
-identity-focused attack techniques.
-
-The generated assessment will become one of the core knowledge sources
-used throughout the Detection Engineering lifecycle.
-""")
-
-        st.markdown("---")
-
-        st.success("✅ Threat Model Assessment completed successfully.")
-
-        st.info(
-            "Click **Continue** to proceed to **Application Analysis**."
-        )
-
-        col1, col2 = st.columns(2)
-
-        with col2:
-
-            if st.button(
-                "Continue to Application Analysis ➜",
-                use_container_width=True,
-                type="primary",
-            ):
-
-                st.session_state.step += 1
-                st.rerun()
+    section_divider()
+
+    # ── MITRE ATT&CK ──
+    st.markdown("##### MITRE ATT&CK Mapping")
+
+    mitre_data = {
+        "Technique": ["T1078", "T1110", "T1190", "T1098", "T1021"],
+        "Name": [
+            "Valid Accounts",
+            "Password Guessing",
+            "Public Facing Application",
+            "Account Manipulation",
+            "Remote Services",
+        ],
+        "Priority": ["Critical", "Critical", "High", "High", "Medium"],
+    }
+    st.table(mitre_data)
+
+    section_divider()
+
+    # ── Detection Priorities ──
+    st.markdown("##### Recommended Detection Priorities")
+
+    p1, p2 = st.columns(2)
+    with p1:
+        checklist([
+            "Password Spray Detection",
+            "Impossible Travel",
+            "Suspicious Authentication",
+            "Privileged Account Monitoring",
+        ])
+    with p2:
+        checklist([
+            "Service Account Abuse",
+            "Administrative Activity Monitoring",
+            "OAuth Abuse Detection",
+            "API Abuse Detection",
+        ])
+
+    section_divider()
+
+    # ── SOC Recommendations ──
+    st.markdown("##### SOC Recommendations")
+
+    enterprise_card(
+        "Monitoring Strategy",
+        "Enable comprehensive identity monitoring · "
+        "Collect authentication and administrative logs · "
+        "Enable Microsoft Sentinel analytics for privileged accounts · "
+        "Correlate authentication events with application activity · "
+        "Monitor service accounts and privileged identities · "
+        "Continuously review business-critical assets · "
+        "Validate logging coverage across the application landscape",
+        "accent-success",
+    )
+
+    section_divider()
+
+    # ── Knowledge Generated ──
+    st.markdown("##### Knowledge Generated")
+
+    info_banner(
+        "The following knowledge has been added to the customer security knowledge base "
+        "and will be referenced during Detection Planning and AI Detection Generation.",
+        variant="success",
+    )
+
+    k1, k2 = st.columns(2)
+    with k1:
+        checklist([
+            "Business Context",
+            "Business Criticality",
+            "Threat Actor Profile",
+            "Threat Landscape",
+            "Critical Assets",
+        ])
+    with k2:
+        checklist([
+            "MITRE ATT&CK Mapping",
+            "Detection Priorities",
+            "Monitoring Recommendations",
+            "Security Context",
+        ])
+
+    section_divider()
+
+    # ── Detection Engineering Impact ──
+    st.markdown("##### Detection Engineering Impact")
+
+    info_banner(
+        f"The assessment for <strong>{application}</strong> has established the initial security context. "
+        f"Future Detection Generation will automatically consider the application business context, "
+        f"threat actor profile, business criticality, critical assets, relevant MITRE ATT&CK techniques, "
+        f"and detection priorities — enabling customer-specific Microsoft Sentinel detections "
+        f"instead of generic analytics.",
+        variant="context",
+    )
+
+    section_divider()
+
+    # ── Navigate ──
+    c1, c2 = st.columns(2)
+    with c2:
+        if st.button(
+            "Continue to Application Analysis ▶",
+            use_container_width=True,
+            type="primary",
+        ):
+            st.session_state.step += 1
+            st.rerun()
