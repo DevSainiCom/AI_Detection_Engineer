@@ -1,6 +1,8 @@
 from typing import Any
 
-from pydantic import BaseModel, Field
+import json
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class DetectionContext(BaseModel):
@@ -26,3 +28,56 @@ class DetectionContext(BaseModel):
     knowledge: str = ""
 
     knowledge_sources: list[str] = Field(default_factory=list)
+
+    @field_validator("sample_logs", mode="before")
+    @classmethod
+    def validate_sample_logs(cls, value):
+
+        if value is None:
+            return []
+
+        # Already valid
+        if (
+            isinstance(value, list)
+            and (len(value) == 0 or isinstance(value[0], dict))
+        ):
+            return value
+
+        # JSON string
+        if isinstance(value, str):
+
+            try:
+                parsed = json.loads(value)
+
+                if isinstance(parsed, list):
+                    return [
+                        item
+                        for item in parsed
+                        if isinstance(item, dict)
+                    ]
+
+            except Exception:
+                return []
+
+        # List of strings (joined JSON)
+        if (
+            isinstance(value, list)
+            and len(value) > 0
+            and isinstance(value[0], str)
+        ):
+
+            try:
+
+                parsed = json.loads("\n".join(value))
+
+                if isinstance(parsed, list):
+                    return [
+                        item
+                        for item in parsed
+                        if isinstance(item, dict)
+                    ]
+
+            except Exception:
+                return []
+
+        return []

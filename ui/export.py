@@ -2,6 +2,7 @@ import json
 import streamlit as st
 
 from ui.components import *
+from backend.core.session_manager import reset_workflow
 
 
 def render():
@@ -59,7 +60,6 @@ def render():
         st.markdown("---")
 
         st.subheader("Detection Name")
-
         st.write(
             detection.get(
                 "DetectionName",
@@ -68,7 +68,6 @@ def render():
         )
 
         st.subheader("Description")
-
         st.write(
             detection.get(
                 "Description",
@@ -76,7 +75,7 @@ def render():
             )
         )
 
-        st.subheader("KQL")
+        st.subheader("Generated KQL")
 
         st.code(
             detection.get(
@@ -137,19 +136,36 @@ def render():
 
     st.markdown("---")
 
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
 
     with c1:
 
         if previous_button():
 
-            st.session_state.step -= 1
-            st.rerun()
+            if st.session_state.step > 0:
+
+                st.session_state.step -= 1
+
+                st.rerun()
 
     with c2:
 
-        if primary_button("Finish"):
+        if st.button(
+            "🏁 Finish Workflow",
+            use_container_width=True,
+        ):
+
+            st.balloons()
 
             st.success(
-                "Detection Engineering workflow completed successfully."
+                "Workflow completed successfully."
             )
+
+    with c3:
+
+        if st.button(
+            "🔄 Start New Detection",
+            use_container_width=True,
+        ):
+
+            reset_workflow()

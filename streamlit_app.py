@@ -7,12 +7,11 @@ from ui import (
     threat_model,
     application_analysis,
     gap_analysis,
-    questionnaire,
+    detection_context,
     log_source,
     log_validation,
     use_case,
     detection_generation,
-    kql_review,
     detection_review,
     explainability,
     approval,
@@ -20,13 +19,9 @@ from ui import (
 )
 
 st.set_page_config(
-
     page_title="AI Detection Engineer",
-
     page_icon="🛡️",
-
     layout="wide",
-
 )
 
 initialize()
@@ -35,30 +30,22 @@ navigation()
 
 PAGES = [
 
+    # Customer Onboarding
     threat_model,
-
     application_analysis,
-
     gap_analysis,
-
-    questionnaire,
-
+    detection_context,
     log_source,
-
     log_validation,
-
     use_case,
 
+    # AI Detection Engineering
     detection_generation,
-
-    kql_review,
-
     detection_review,
-
     explainability,
 
+    # Finalisation
     approval,
-
     export,
 
 ]
@@ -66,9 +53,7 @@ PAGES = [
 step = st.session_state.step
 
 if step >= len(PAGES):
-
     st.session_state.step = 0
-
     step = 0
 
 PAGES[step].render()

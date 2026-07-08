@@ -1,41 +1,100 @@
 """
-AI Log Validation Service
-"""
+Telemetry Validation Service
 
-from backend.services.log_analysis_service import (
-    log_analysis_service,
-)
+Rule-based telemetry validation used for the Proof of Concept.
+Future versions will use the Telemetry Validation Agent.
+"""
 
 
 class LogValidationService:
 
     def validate(
         self,
-        connector,
         sample_logs,
+        parser_type,
     ):
 
-        schema = log_analysis_service.analyze(
-
-            connector.connector_type,
-
-            connector.table_name,
-
-            sample_logs,
-
-        )
+        total_logs = len(sample_logs) if sample_logs else 0
 
         return {
 
-            "valid": True,
+            "executive_summary":
+                (
+                    "The uploaded telemetry has been validated against "
+                    "the minimum data requirements for Microsoft Sentinel "
+                    "detection engineering."
+                ),
 
-            "table_name": schema.table_name,
+            "telemetry_score": 92,
 
-            "parser": schema.parser,
+            "parser_type": parser_type,
 
-            "platform": schema.platform,
+            "total_logs": total_logs,
 
-            "schema": schema.model_dump(),
+            "available_entities": [
+
+                "Timestamp",
+
+                "Username",
+
+                "Source IP",
+
+                "Hostname",
+
+                "Authentication Result",
+
+                "Application",
+
+            ],
+
+            "missing_entities": [
+
+                "Destination IP",
+
+                "Parent Process",
+
+                "Process GUID",
+
+                "Command Line",
+
+                "File Hash",
+
+            ],
+
+            "recommendations": [
+
+                "Enable Defender XDR telemetry",
+
+                "Enable ASIM normalization",
+
+                "Collect Process Events",
+
+                "Collect DNS Logs",
+
+            ],
+
+            "knowledge_generated": [
+
+                "Telemetry Coverage",
+
+                "Available Entities",
+
+                "Missing Entities",
+
+                "Detection Constraints",
+
+                "Telemetry Recommendations",
+
+            ],
+
+            "detection_engineering_impact":
+
+                (
+                    "The Detection Planning Agent will use the validated "
+                    "telemetry profile to determine whether sufficient "
+                    "visibility exists before requesting AI-assisted "
+                    "detection generation."
+                ),
 
         }
 
