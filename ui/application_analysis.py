@@ -1,6 +1,18 @@
+"""
+Application Analysis — Enterprise Redesign
+=============================================
+"""
+
 import streamlit as st
 
 from ui.components import *
+from ui.design_system import (
+    enterprise_card,
+    metric_row,
+    info_banner,
+    checklist,
+    section_divider,
+)
 
 from backend.services.application_analysis_service import (
     application_analysis_service,
@@ -9,256 +21,178 @@ from backend.services.application_analysis_service import (
 
 def render():
 
-    page_header(
-        "Application Analysis",
-        "Understand the application architecture and security posture."
-    )
-
-    app_name = st.text_input(
-        "Application Name",
-        value=st.session_state.threat_model.get(
-            "ApplicationName",
-            "",
+    page_setup(
+        title="Application Analysis",
+        subtitle="Understand the application architecture, security posture, and telemetry requirements.",
+        eyebrow="Customer Onboarding · Step 2 of 12",
+        agent_name="Application Analysis Agent",
+        agent_desc=(
+            "Extracts application metadata, identifies critical assets, trust boundaries, "
+            "and recommends detection opportunities based on the technology stack. "
+            "<strong>Current POC:</strong> Rule-based analysis. "
+            "<strong>Future:</strong> AI-powered analysis of architecture diagrams, "
+            "Terraform templates, Kubernetes manifests, and API specifications."
         ),
     )
 
-    app_type = st.selectbox(
-        "Application Type",
-        [
-            "Web",
-            "API",
-            "Desktop",
-            "Cloud Native",
-            "Mobile",
-        ],
+    # ── Input Form ──
+
+    col1, col2 = st.columns(2, gap="large")
+
+    with col1:
+        st.markdown("##### Application Profile")
+
+        app_name = st.text_input(
+            "Application Name",
+            value=st.session_state.threat_model.get("ApplicationName", ""),
+        )
+
+        app_type = st.selectbox(
+            "Application Type",
+            ["Web", "API", "Desktop", "Cloud Native", "Mobile"],
+        )
+
+        authentication = st.selectbox(
+            "Authentication",
+            ["Entra ID", "Active Directory", "OAuth", "Local"],
+        )
+
+    with col2:
+        st.markdown("##### Environment")
+
+        cloud = st.selectbox(
+            "Hosting Platform",
+            ["Azure", "AWS", "GCP", "On-Prem"],
+        )
+
+        classification = st.selectbox(
+            "Data Classification",
+            ["Public", "Internal", "Confidential", "Restricted"],
+        )
+
+        stack = st.text_input(
+            "Technology Stack",
+            placeholder=".NET, Java, SQL Server, AKS, React...",
+        )
+
+    section_divider()
+
+    if st.button("🔍 Analyze Application", use_container_width=True, type="primary"):
+        with st.spinner("Analysing application architecture..."):
+            result = application_analysis_service.analyze(
+                application_name=app_name,
+                application_type=app_type,
+                business_function=st.session_state.threat_model.get("BusinessFunction", ""),
+                authentication=authentication,
+                cloud_provider=cloud,
+                technology_stack=[x.strip() for x in stack.split(",") if x.strip()],
+                business_criticality=st.session_state.threat_model.get("Criticality", "Medium"),
+                data_classification=classification,
+            )
+            st.session_state.application = result
+
+    # ── Results ──
+
+    if st.session_state.application is None:
+        return
+
+    result = st.session_state.application
+
+    info_banner(
+        f"Application analysis for <strong>{result.application_name}</strong> completed successfully.",
+        variant="success",
     )
 
-    authentication = st.selectbox(
-        "Authentication",
-        [
-            "Entra ID",
-            "Active Directory",
-            "OAuth",
-            "Local",
-        ],
-    )
+    # ── Metrics ──
+    rating_color = {"High": "red", "Medium": "amber", "Low": "green"}.get(result.security_rating, "blue")
 
-    cloud = st.selectbox(
-        "Hosting",
-        [
-            "Azure",
-            "AWS",
-            "GCP",
-            "On-Prem",
-        ],
-    )
+    metric_row([
+        {"value": result.security_rating, "label": "Security Rating", "color": rating_color},
+        {"value": str(len(result.critical_assets)), "label": "Critical Assets", "color": "purple"},
+        {"value": str(len(result.recommended_log_sources)), "label": "Log Sources", "color": "blue"},
+        {"value": str(len(result.recommended_detection_use_cases)), "label": "Detection Opportunities", "color": "green"},
+    ])
 
-    classification = st.selectbox(
-        "Data Classification",
-        [
-            "Public",
-            "Internal",
-            "Confidential",
-            "Restricted",
-        ],
-    )
+    section_divider()
 
-    stack = st.text_input(
-        "Technology Stack",
-        placeholder=".NET, Java, SQL Server, AKS, React..."
-    )
+    # ── Executive Summary ──
+    st.markdown("##### Executive Summary")
+    enterprise_card("Assessment", result.executive_summary, "accent-left")
 
-    st.markdown("---")
+    section_divider()
 
-    if st.button("Analyze Application"):
-
-        result = application_analysis_service.analyze(
-
-            application_name=app_name,
-
-            application_type=app_type,
-
-            business_function=st.session_state.threat_model.get(
-                "BusinessFunction",
-                "",
-            ),
-
-            authentication=authentication,
-
-            cloud_provider=cloud,
-
-            technology_stack=[
-                x.strip()
-                for x in stack.split(",")
-                if x.strip()
-            ],
-
-            business_criticality=st.session_state.threat_model.get(
-                "Criticality",
-                "Medium",
-            ),
-
-            data_classification=classification,
-        )
-
-        st.session_state.application = result
-
-    # -------------------------------------------------------
-    # Display Analysis
-    # -------------------------------------------------------
-
-    if st.session_state.application is not None:
-
-        result = st.session_state.application
-
-        st.success("Application analysis completed successfully.")
-
-        st.markdown("---")
-
-        st.subheader("Executive Summary")
-        st.info(result.executive_summary)
-
-        st.markdown("### Overall Security Rating")
-
-        if result.security_rating == "High":
-            st.error(result.security_rating)
-        elif result.security_rating == "Medium":
-            st.warning(result.security_rating)
-        else:
-            st.success(result.security_rating)
-
-        st.markdown("---")
-
-        st.subheader("Application Overview")
-
-        st.table(
-            {
-                "Attribute": [
-                    "Application",
-                    "Application Type",
-                    "Business Function",
-                    "Authentication",
-                    "Hosting Platform",
-                    "Business Criticality",
-                    "Data Classification",
-                ],
-                "Value": [
-                    result.application_name,
-                    result.application_type,
-                    result.business_function,
-                    result.authentication,
-                    result.cloud_provider,
-                    result.business_criticality,
-                    result.data_classification,
-                ],
-            }
-        )
-
-        st.markdown("---")
-
-        st.subheader("Architecture Understanding")
-        st.write(result.architecture_summary)
-
-        st.markdown("#### Technology Stack")
-
-        for item in result.technology_stack:
-            st.markdown(f"- {item}")
-
-        st.markdown("#### Critical Assets")
-
-        for asset in result.critical_assets:
-            st.markdown(f"✅ {asset}")
-
-        st.markdown("#### Trust Boundaries")
-
-        for boundary in result.trust_boundaries:
-            st.markdown(f"- {boundary}")
-
-        st.markdown("---")
-
-        st.subheader("Security Observations")
-
-        for observation in result.security_observations:
-            st.markdown(f"• {observation}")
-
-        st.markdown("---")
-
-        st.subheader("Expected Security Telemetry")
-
-        st.write(
-            "Based on the application characteristics, the following "
-            "Microsoft Sentinel log sources are recommended."
-        )
-
-        for log in result.recommended_log_sources:
-            st.markdown(f"📄 {log}")
-
-        st.markdown("---")
-
-        st.subheader("Recommended Detection Opportunities")
-
-        st.write(
-            "The following detections should be prioritised for this application."
-        )
-
-        for detection in result.recommended_detection_use_cases:
-            st.markdown(f"🛡️ {detection}")
-
-        st.markdown("---")
-
-        st.subheader("Knowledge Generated")
-
-        st.success(
-            "The following information has been added to the customer's "
-            "security knowledge base:"
-        )
-
-        for item in result.knowledge_generated:
-            st.markdown(f"✔ {item}")
-
-        st.markdown("---")
-
-        st.subheader("How This Analysis Will Be Used")
-        st.info(result.future_ai_usage)
-
-        st.markdown("---")
-
-        st.subheader("Future AI Enhancement")
-
-        st.warning(
-            """
-Future versions of the platform will replace this rule-based analysis
-with an AI-powered Application Analysis Agent.
-
-The agent will analyse:
-
-- Architecture Diagrams
-- Application Documentation
-- API Specifications
-- Terraform Templates
-- Kubernetes Manifests
-- Azure Resources
-- PDF / Word Documents
-- Security Assessments
-
-The extracted knowledge will automatically enrich future
-Microsoft Sentinel detection generation.
-"""
-        )
-
-        with st.expander("Developer View (Structured Data)"):
-            st.json(result.model_dump())
-
-    st.markdown("---")
+    # ── Application Overview ──
+    st.markdown("##### Application Overview")
 
     c1, c2 = st.columns(2)
-
     with c1:
-        if previous_button():
-            st.session_state.step -= 1
-            st.rerun()
-
+        enterprise_card("Application", result.application_name, "accent-left")
+        enterprise_card("Type", result.application_type, "accent-left")
+        enterprise_card("Authentication", result.authentication, "accent-left")
+        enterprise_card("Hosting", result.cloud_provider, "accent-left")
     with c2:
-        if next_button():
-            st.session_state.step += 1
-            st.rerun()
+        enterprise_card("Business Function", result.business_function, "accent-left")
+        enterprise_card("Criticality", result.business_criticality, "accent-left")
+        enterprise_card("Data Classification", result.data_classification, "accent-left")
+        enterprise_card("Technology Stack", " · ".join(result.technology_stack), "accent-left")
+
+    section_divider()
+
+    # ── Architecture ──
+    st.markdown("##### Architecture Understanding")
+    enterprise_card("Architecture Summary", result.architecture_summary, "accent-left")
+
+    a1, a2 = st.columns(2)
+    with a1:
+        st.markdown("###### Critical Assets")
+        checklist(result.critical_assets)
+    with a2:
+        st.markdown("###### Trust Boundaries")
+        checklist(result.trust_boundaries)
+
+    section_divider()
+
+    # ── Security Observations ──
+    st.markdown("##### Security Observations")
+    enterprise_card(
+        "Findings",
+        " · ".join(result.security_observations),
+        "accent-warning",
+    )
+
+    section_divider()
+
+    # ── Telemetry & Detection ──
+    st.markdown("##### Recommended Telemetry & Detection Opportunities")
+
+    t1, t2 = st.columns(2)
+    with t1:
+        st.markdown("###### Expected Log Sources")
+        checklist(result.recommended_log_sources)
+    with t2:
+        st.markdown("###### Detection Use Cases")
+        checklist(result.recommended_detection_use_cases)
+
+    section_divider()
+
+    # ── Knowledge Generated ──
+    st.markdown("##### Knowledge Generated")
+
+    info_banner(
+        "The following information has been added to the customer security knowledge base.",
+        variant="success",
+    )
+
+    checklist(result.knowledge_generated)
+
+    section_divider()
+
+    # ── Impact ──
+    st.markdown("##### Detection Engineering Impact")
+    info_banner(result.future_ai_usage, variant="context")
+
+    # ── Developer View ──
+    developer_view(result.model_dump())
+
+    # ── Navigation ──
+    nav_buttons()

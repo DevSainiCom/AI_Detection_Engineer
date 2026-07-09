@@ -1,356 +1,232 @@
+"""
+Detection Context — Enterprise Redesign
+"""
+
 import streamlit as st
 import time
 
 from ui.components import *
-
-from backend.services.detection_context_service import (
-    detection_context_service,
+from ui.design_system import (
+    enterprise_card, metric_row, info_banner, checklist, section_divider,
 )
+from backend.services.detection_context_service import detection_context_service
 
 
 def render():
 
-    page_header(
-        "Detection Context",
-        "Capture the telemetry, parser and operational context required for customer-specific Microsoft Sentinel detection engineering."
+    page_setup(
+        title="Detection Context",
+        subtitle="Capture telemetry, parser, and operational context required for customer-specific Microsoft Sentinel detection engineering.",
+        eyebrow="Customer Onboarding · Step 4 of 12",
+        agent_name="Detection Context Agent",
+        agent_desc=(
+            "Collects customer-specific telemetry and parser knowledge that will be stored "
+            "in the Detection Knowledge Manager and retrieved during AI detection generation. "
+            "<strong>Current POC:</strong> Rule-based context collection. "
+            "<strong>Future:</strong> Automatic parser discovery, log schema extraction, "
+            "and knowledge indexing via RAG pipeline."
+        ),
     )
 
-    st.info(
-        """
-### Detection Context Agent (Proof of Concept)
+    # ── Telemetry Source ──
 
-This page demonstrates the expected output of the **Detection Context Agent**.
+    st.markdown("##### Telemetry Collection Strategy")
 
-The agent collects customer-specific telemetry, parser and operational knowledge
-required for high-quality detection engineering.
+    col1, col2 = st.columns(2, gap="large")
 
-The collected knowledge will later be stored within the **Detection Knowledge Manager**
-and retrieved by the **Context Retrieval Agent** during AI-assisted detection generation.
-"""
-    )
+    with col1:
+        parser_type = st.radio(
+            "Telemetry Source",
+            ["Native Microsoft Sentinel", "Custom Parser"],
+            horizontal=True,
+        )
 
-    st.markdown("---")
+    section_divider()
 
-    # ==========================================================
-    # Parser Strategy
-    # ==========================================================
+    # ── Native vs Custom ──
 
-    st.subheader("Telemetry Collection Strategy")
-
-    parser_type = st.radio(
-        "Telemetry Source",
-        [
-            "Native Microsoft Sentinel",
-            "Custom Parser",
-        ],
-        horizontal=True,
-    )
-
-    st.markdown("---")
-
-    # ==========================================================
-    # Native Connector
-    # ==========================================================
+    left, right = st.columns(2, gap="large")
 
     if parser_type == "Native Microsoft Sentinel":
 
-        connector_name = st.selectbox(
-            "Microsoft Sentinel Connector",
-            [
-                "Microsoft Entra ID",
-                "Microsoft Defender XDR",
-                "Azure Activity",
-                "Microsoft 365",
-                "Windows Security Events",
-                "Syslog",
-                "AWS CloudTrail",
-                "Google Cloud",
-                "Other",
-            ],
-        )
+        with left:
+            st.markdown("##### Sentinel Configuration")
+            connector_name = st.selectbox(
+                "Connector",
+                [
+                    "Microsoft Entra ID", "Microsoft Defender XDR",
+                    "Azure Activity", "Microsoft 365",
+                    "Windows Security Events", "Syslog",
+                    "AWS CloudTrail", "Google Cloud", "Other",
+                ],
+            )
+            asim = st.selectbox(
+                "ASIM Normalization",
+                ["Implemented", "Partially Implemented", "Not Implemented"],
+            )
+            dcr = st.selectbox(
+                "Data Collection Rules",
+                ["Configured", "Partially Configured", "Not Used"],
+            )
 
-        asim = st.selectbox(
-            "ASIM Normalization",
-            [
-                "Implemented",
-                "Partially Implemented",
-                "Not Implemented",
-            ],
-        )
-
-        tables = st.text_input(
-            "Available Sentinel Tables",
-            placeholder="SigninLogs, DeviceEvents, SecurityEvent..."
-        )
-
-        dcr = st.selectbox(
-            "Data Collection Rules",
-            [
-                "Configured",
-                "Partially Configured",
-                "Not Used",
-            ],
-        )
-
-        transformations = st.selectbox(
-            "Custom Transformations",
-            [
-                "None",
-                "Some",
-                "Extensive",
-            ],
-        )
-
-    # ==========================================================
-    # Custom Parser
-    # ==========================================================
+        with right:
+            st.markdown("##### Tables & Transforms")
+            tables = st.text_input(
+                "Available Sentinel Tables",
+                placeholder="SigninLogs, DeviceEvents, SecurityEvent...",
+            )
+            transformations = st.selectbox(
+                "Custom Transformations",
+                ["None", "Some", "Extensive"],
+            )
+            telemetry_quality = st.selectbox(
+                "Telemetry Quality",
+                ["High", "Medium", "Low"],
+            )
 
     else:
 
-        parser_name = st.text_input(
-            "Parser Name"
-        )
-
-        parser_language = st.selectbox(
-            "Parser Technology",
-            [
-                "KQL Parser",
-                "Logstash",
-                "Fluent Bit",
-                "Fluentd",
-                "Cribl",
-                "Python",
-                "Other",
-            ],
-        )
-
-        parser_docs = st.selectbox(
-            "Parser Documentation Available",
-            [
-                "Yes",
-                "Partial",
-                "No",
-            ],
-        )
-
-        field_mapping = st.selectbox(
-            "Field Mapping Document",
-            [
-                "Available",
-                "Partial",
-                "Not Available",
-            ],
-        )
-
-        normalization = st.selectbox(
-            "Normalization Rules",
-            [
-                "Documented",
-                "Partially Documented",
-                "Unknown",
-            ],
-        )
-
-        raw_logs = st.selectbox(
-            "Sample Raw Logs",
-            [
-                "Available",
-                "Limited",
-                "Unavailable",
-            ],
-        )
-
-        parsed_logs = st.selectbox(
-            "Sample Parsed Logs",
-            [
-                "Available",
-                "Limited",
-                "Unavailable",
-            ],
-        )
-
-    st.markdown("---")
-
-    # ==========================================================
-    # Operational Context
-    # ==========================================================
-
-    st.subheader("Operational Context")
-
-    telemetry_quality = st.selectbox(
-        "Telemetry Quality",
-        [
-            "High",
-            "Medium",
-            "Low",
-        ],
-    )
-
-    retention = st.selectbox(
-        "Log Retention",
-        [
-            "30 Days",
-            "90 Days",
-            "180 Days",
-            "1 Year",
-            "More than 1 Year",
-        ],
-    )
-
-    enrichment = st.multiselect(
-        "Available Enrichment Sources",
-        [
-            "CMDB",
-            "Asset Inventory",
-            "Microsoft Entra ID",
-            "Threat Intelligence",
-            "GeoIP",
-            "Vulnerability Scanner",
-            "Identity Database",
-        ],
-    )
-
-    st.markdown("---")
-
-    if st.button(
-        "Generate Detection Context",
-        type="primary",
-        use_container_width=True,
-    ):
-
-        with st.spinner(
-            "Generating Detection Context..."
-        ):
-
-            time.sleep(1)
-
-            result = detection_context_service.generate(
-
-                threat_model=st.session_state.threat_model,
-
-                application=st.session_state.application,
-
-                coverage_analysis=st.session_state.gap_analysis,
-
-                parser_type=parser_type,
-
+        with left:
+            st.markdown("##### Parser Details")
+            parser_name = st.text_input("Parser Name")
+            parser_language = st.selectbox(
+                "Parser Technology",
+                ["KQL Parser", "Logstash", "Fluent Bit", "Fluentd", "Cribl", "Python", "Other"],
+            )
+            parser_docs = st.selectbox(
+                "Documentation Available",
+                ["Yes", "Partial", "No"],
+            )
+            field_mapping = st.selectbox(
+                "Field Mapping Document",
+                ["Available", "Partial", "Not Available"],
             )
 
+        with right:
+            st.markdown("##### Sample Data")
+            normalization = st.selectbox(
+                "Normalization Rules",
+                ["Documented", "Partially Documented", "Unknown"],
+            )
+            raw_logs = st.selectbox(
+                "Sample Raw Logs",
+                ["Available", "Limited", "Unavailable"],
+            )
+            parsed_logs = st.selectbox(
+                "Sample Parsed Logs",
+                ["Available", "Limited", "Unavailable"],
+            )
+            telemetry_quality = st.selectbox(
+                "Telemetry Quality",
+                ["High", "Medium", "Low"],
+            )
+
+    section_divider()
+
+    # ── Operational Context ──
+
+    st.markdown("##### Operational Context")
+
+    op1, op2 = st.columns(2, gap="large")
+
+    with op1:
+        retention = st.selectbox(
+            "Log Retention",
+            ["30 Days", "90 Days", "180 Days", "1 Year", "More than 1 Year"],
+        )
+
+    with op2:
+        enrichment = st.multiselect(
+            "Available Enrichment Sources",
+            ["CMDB", "Asset Inventory", "Microsoft Entra ID",
+             "Threat Intelligence", "GeoIP", "Vulnerability Scanner", "Identity Database"],
+        )
+
+    section_divider()
+
+    if st.button("⚙️ Generate Detection Context", type="primary", use_container_width=True):
+        with st.spinner("Generating detection context..."):
+            time.sleep(1)
+            result = detection_context_service.generate(
+                threat_model=st.session_state.threat_model,
+                application=st.session_state.application,
+                coverage_analysis=st.session_state.gap_analysis,
+                parser_type=parser_type,
+            )
             st.session_state.detection_context = result
-
             st.rerun()
 
-    # ==========================================================
-    # Display Results
-    # ==========================================================
+    # ── Results ──
 
-    if st.session_state.detection_context is not None:
+    if st.session_state.detection_context is None:
+        return
 
-        result = st.session_state.detection_context
+    result = st.session_state.detection_context
 
-        st.success(
-            "Detection context generated successfully."
-        )
+    info_banner(
+        "Detection context generated and added to the Knowledge Manager.",
+        variant="success",
+    )
 
-        st.markdown("---")
+    # ── Summary ──
+    st.markdown("##### Executive Summary")
+    enterprise_card("Context Summary", result["executive_summary"], "accent-left")
 
-        st.subheader("Executive Summary")
+    section_divider()
 
-        st.info(result["executive_summary"])
+    # ── Context Detail ──
+    st.markdown("##### Context Details")
 
-        st.markdown("---")
+    ctx1, ctx2 = st.columns(2)
+    with ctx1:
+        st.markdown("###### Business Context")
+        checklist(result["business_context"])
+    with ctx2:
+        st.markdown("###### Telemetry & Parser Context")
+        checklist(result["parser_context"])
 
-        st.subheader("Business Context")
+    section_divider()
 
-        for item in result["business_context"]:
-            st.markdown(f"• {item}")
+    # ── Knowledge Sources ──
+    st.markdown("##### Knowledge Sources for RAG Retrieval")
 
-        st.markdown("---")
+    info_banner(
+        "The following sources will be indexed in the Detection Knowledge Manager "
+        "and retrieved by the Context Retrieval Agent during detection generation.",
+        variant="info",
+    )
 
-        st.subheader("Telemetry & Parser Context")
+    checklist(result["rag_sources"])
 
-        for item in result["parser_context"]:
-            st.markdown(f"📄 {item}")
-        st.markdown("---")
+    section_divider()
 
-        st.subheader("Knowledge Sources for Context Retrieval")
+    # ── Knowledge Generated ──
+    st.markdown("##### Knowledge Generated")
+    info_banner(
+        "Customer-specific knowledge added to the Detection Knowledge Manager.",
+        variant="success",
+    )
+    checklist(result["knowledge_generated"])
 
-        st.write(
-            "The following knowledge sources will be indexed within the "
-            "Detection Knowledge Manager and retrieved by the Context "
-            "Retrieval Agent during detection generation."
-        )
+    section_divider()
 
-        for item in result["rag_sources"]:
-            st.markdown(f"📚 {item}")
+    # ── Pipeline ──
+    st.markdown("##### Detection Engineering Pipeline")
 
-        st.markdown("---")
+    enterprise_card(
+        "How This Context Is Used",
+        "1. <strong>Detection Planning Agent</strong> — determines what knowledge is required.<br/>"
+        "2. <strong>Context Retrieval Agent</strong> — retrieves parser knowledge, telemetry "
+        "information, and normalisation rules from the Knowledge Manager.<br/>"
+        "3. <strong>Detection Generation Engine</strong> — combines context with detection "
+        "requirements to generate customer-specific Microsoft Sentinel detections.<br/>"
+        "4. <strong>Detection Review Agent</strong> — validates quality before deployment.",
+        "accent-left",
+    )
 
-        st.subheader("Knowledge Generated")
+    section_divider()
 
-        st.success(
-            "The following customer-specific knowledge has been added "
-            "to the Detection Knowledge Manager:"
-        )
+    info_banner(result["detection_engineering_impact"], variant="context")
 
-        for item in result["knowledge_generated"]:
-            st.markdown(f"✅ {item}")
-
-        st.markdown("---")
-
-        st.subheader("Detection Engineering Impact")
-
-        st.info(result["detection_engineering_impact"])
-
-        st.markdown("---")
-
-        st.subheader("How the Multi-Agent Platform Uses This Information")
-
-        st.success(
-            """
-The Detection Context Agent has now completed customer onboarding.
-
-During detection generation:
-
-1. The **Detection Planning Agent** determines what information is
-   required for the requested detection.
-
-2. The **Context Retrieval Agent** retrieves the relevant
-   business context, parser knowledge, telemetry information,
-   normalization rules and documentation from the Detection
-   Knowledge Manager.
-
-3. The **Detection Generation Engine** combines this context with
-   the detection requirements to generate customer-specific
-   Microsoft Sentinel detections.
-
-4. The **Detection Quality Agent** validates the generated
-   detection before it is approved for deployment.
-"""
-        )
-
-        st.markdown("---")
-
-        with st.expander("Developer View (Structured Data)"):
-
-            st.json(result)
-
-    st.markdown("---")
-
-    c1, c2 = st.columns(2)
-
-    with c1:
-
-        if previous_button():
-
-            st.session_state.step -= 1
-
-            st.rerun()
-
-    with c2:
-
-        if next_button():
-
-            st.session_state.step += 1
-
-            st.rerun()
+    developer_view(result)
+    nav_buttons()
